@@ -134,22 +134,99 @@ resolveUtil = {
     }, vm.$data)
   },
   // 解析v-model
-  model(node, expr, vm) {},
+  model(node, expr, vm) {
+    new Watcher(vm, exp, (newVal) => {
+      node.value = newVal
+    })
+    node.addEventListener('input', (e) => {
+        let value = e.target.value
+        this.setValue(vm, expr, value)
+    });
+    let value  = this.getValue(vm, expr)
+    node.value = value
+  },
   // 解析v-on:click="handlerClick"
-  on(node, expr, vm, evntName) {},
+  on(node, expr, vm, eventName) {
+    node.addEventListener(eventName, e => {
+      vm[expr].call(vm, e)
+    })
+  },
   // 解析v-text {{}}
-  text(node, expr, vm) {},
+  text(node, expr, vm) {
+    let reg = /\{\{(.+?)\}\}/
+    let expr = exp.match(reg)
+    node.textContent = this.getValue(vm, expr[1])
+    new Watcher(vm, expr[1], () => {
+        node.textContent = this.getValue(vm, expr[1])
+    });
+  },
   // 解析v-html
-  html(node, expr, vm) {}
+  html(node, expr, vm) {
+    new Watcher(vm, expr, newVal => {
+      node.innerHTML = newVal
+    })
+    let value  = this.getValue(vm, expr)
+    node.innerHTML = value
+  }
 }
 // 编译
 class Compiler{
   constructor(el, vm) {
+    // 判断el属性
     this.el = this.isElementNode(el) ? el: document.querySelector(el)
-    this.vm = vm
+    this.vm = vm;
+    // 把当前节点放到内存中
+    let fragment = this.createFragment(this.el)
+    // 把节点内容进行替换
+    // 编译成可以渲染的数据
+    this.compile(fragment)
+    // 把编译好的内容放回dom
+
   }
   // 是否元素节点
   isElementNode(node) {
     return node.nodeType === 1
+  }
+  createFragment(el) {
+    let fragment = document.createDocumentFragment()
+    let firstChild
+    while (firstChild = el.firstChild) {
+      fragment.appendChild(firstChild)
+    }
+    return fragment
+  }
+  // 核心编译方法
+  compile(node) {
+    let childNodes = node.childNodes
+    [...childNodes].forEach(child => {
+      if(this.isElementNode(child)) { // 是否元素节点
+        this.compile(child)
+        let attributes = node.attributes // 类数组
+        [...attributes].forEach(attr => { // type="text" v-model="a.m"
+            let { name, value:expr } = attr // v-model="a.b"
+            // 判断是不是指令 //v-
+            if(this.isDirective(name)){ // v-model v-html v-bind
+                let [,directive]  = name.split('-');  // v-on:click
+                let [directiveName, eventName] = directive.split(':')
+                // 需要调用不同的指令来处理
+                resolveUtil[directiveName](node,expr,this.vm,eventName)
+            }
+        })
+      } else { // 编译文本
+        this.compileText(child)
+      }
+    })
+  }
+  // 编译文本
+  compileText(node) {
+    let content = node.textContent;
+    if(/\{\{(.+?)\}\}/.test(content)) { // 判断是否有模板语法
+
+        // 文本节点
+        resolveUtil.text(node, content, this.vm); // {{a}} {{b}}替换文本
+    }
+  }
+  isDirective(name) {
+    return name.startsWith('v-')
   }
 }
