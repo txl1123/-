@@ -4,20 +4,22 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>mvvm_demo.html</title>
-    <!-- <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> -->
-    <script src="https://cdn.bootcss.com/babel-core/6.1.16/browser.js"></script>
-    <script src="mvvm.js"></script>
+    <script src="https://cdn.bootcss.com/babel-standalone/6.26.0/babel.min.js"></script>
+    <!-- <script src="https://cdn.bootcss.com/babel-core/6.1.16/browser.js"></script> -->
+    <script type="text/babel" src="./mvvm.js"></script>
   </head>
   <body>
     <div id="app">
       <div>a:<input v-model="a" type="text" placeholder="输入a的值" /></div>
+      <div>a输入的值 {{ a }}</div>
       <div>b: {{ b }}</div>
       <div>total: {{ total }}</div>
       <p>{{ info.name }}的信息：</p>
       <p>年龄：{{ info.age }}</p>
       <p>地址：{{ info.addr }}</p>
     </div>
-    <script>
+    <script type="text/babel">
+    console.log([...[1,2,3]])
       const app = new MVVM({
         el: '#app',
         data: {
@@ -26,11 +28,12 @@
             age: '10',
             addr: 'none'
           },
-          a: undefined,
+          a: 0,
           b: 2
         },
         computed: {
           total: function() {
+            debugger
             let c = this.a || 0
             return this.c + this.b
           }
